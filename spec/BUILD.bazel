@@ -1,0 +1,19 @@
+# The module root: the authored specifications, flat, which is exactly the
+# layout a bundle's `modules/` has once installed. A deployment's
+# `use @demo-panel::*;` resolves against a directory of this shape.
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "demo-counter.brenn",
+    "demo-panel.brenn",
+])
+
+# The root as one label, for the fit checks and for anyone assembling a module
+# root out of several. A glob rather than a list: every .brenn file here must
+# be shipped by the bundle, and glob ensures an unshipped file fails the
+# set-equality check rather than silently becoming importable vocabulary.
+filegroup(
+    name = "modules",
+    srcs = glob(["*.brenn"]),
+)

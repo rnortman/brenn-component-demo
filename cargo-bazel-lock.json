@@ -1,0 +1,95 @@
+{
+  "checksum": "b7d2e106c3d1c0afa357ff9b0072c06cf03bf61341ecdeaee88e68b1823ce39b",
+  "crates": {
+    "demo-counter 0.1.0": {
+      "name": "demo-counter",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2024",
+        "version": "0.1.0"
+      },
+      "license": "Apache-2.0",
+      "license_ids": [
+        "Apache-2.0"
+      ],
+      "license_file": null
+    },
+    "demo-panel 0.1.0": {
+      "name": "demo-panel",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2024",
+        "version": "0.1.0"
+      },
+      "license": "Apache-2.0",
+      "license_ids": [
+        "Apache-2.0"
+      ],
+      "license_file": null
+    },
+    "demo-tests 0.1.0": {
+      "name": "demo-tests",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "demo_tests",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "demo_tests",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2024",
+        "version": "0.1.0"
+      },
+      "license": "Apache-2.0",
+      "license_ids": [
+        "Apache-2.0"
+      ],
+      "license_file": null
+    }
+  },
+  "binary_crates": [],
+  "workspace_members": {
+    "demo-counter 0.1.0": "demo-counter",
+    "demo-panel 0.1.0": "demo-panel",
+    "demo-tests 0.1.0": "tests"
+  },
+  "conditions": {
+    "wasm32-unknown-unknown": [
+      "wasm32-unknown-unknown"
+    ],
+    "x86_64-unknown-linux-gnu": [
+      "x86_64-unknown-linux-gnu"
+    ]
+  },
+  "direct_deps": [],
+  "direct_dev_deps": [],
+  "unused_patches": []
+}

@@ -1,0 +1,18 @@
+# The cargo view of this repository. Bazel-only — cargo never builds it; the
+# manifests and the lockfile exist so `crate_universe` can resolve the one
+# third-party hub this repository owns.
+#
+# Neither guest lists a dependency. brenn-guest's API is expressed in serde
+# types, so the guests' serde and serde_json must come from brenn's guest
+# instance (`@brenn//brenn-wasm/components/guest:{serde,serde_json}`); a derive
+# from any other instance satisfies none of brenn-guest's port bounds. The host
+# test crate is where a third-party crate legitimately appears.
+[workspace]
+members = ["demo-counter", "demo-panel", "tests"]
+resolver = "3"
+
+# Inherited by every member via `license.workspace = true`. Declared even
+# though nothing here is published and cargo never builds this repository: the
+# licence is a fact about the source, not about the distribution channel.
+[workspace.package]
+license = "Apache-2.0"

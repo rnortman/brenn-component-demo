@@ -1,0 +1,105 @@
+"""The first component repository built outside brenn with brenn's rules.
+
+Two components — one page-hosted panel that draws a button and a number, one
+placement-agnostic counter that runs on the browser surface or on the backend —
+packaged as a bundle a deployment installs beside brenn's own release.
+
+Deliberately pointless as a product and complete as a proof: every path an
+out-of-tree author walks is walked once here, so a broken path breaks this
+repository's CI rather than an author's afternoon.
+
+Four facts are the consumer's to state, because bzlmod reads them from the root
+module only: the Rust toolchain, the `fltk` git override, the crate hub's name,
+and the brenn commit this repository builds against. brenn's own declarations
+of the first two are ignored from a dependency.
+"""
+
+module(
+    name = "brenn_component_demo",
+    version = "0.1.0",
+)
+
+# The brenn commit every rule, macro and host crate here comes from. Build-time
+# contracts are hard-cut at this pin: a bump is when a macro rename or a changed
+# generated shape is paid for, and never between bumps.
+#
+# The commit must be pushed to brenn's public GitHub remote — this fetch is
+# anonymous, and one that was never pushed fails here. That it is also on `main`
+# is policy, checked by nothing: GitHub serves any commit object it holds by
+# SHA. `make check BRENN_OVERRIDE=<path>` is how work against an unpushed brenn
+# is done.
+bazel_dep(name = "brenn", version = "")
+git_override(
+    module_name = "brenn",
+    commit = "148f2511666d94fde1fc9226f5bf50e0ed4d2f1f",
+    remote = "https://github.com/rnortman/brenn.git",
+)
+
+# fltk, restated at brenn's commit. brenn's `//brenn-dsl:dsl_cli` — which
+# scaffolds the port modules, folds a class name to a wire kind and runs the
+# grant-parity gate — links fltk's runtime crates, and fltk's module() declares
+# no version and is in no registry, so only a root-module `git_override` can
+# supply it.
+bazel_dep(name = "fltk", version = "")
+git_override(
+    module_name = "fltk",
+    commit = "555824e6b1dee22161260c2843bd4dec68efd11a",
+    remote = "https://github.com/rnortman/fltk.git",
+)
+
+bazel_dep(name = "rules_rust", version = "0.73.0")
+
+# rules_js, ahead of its releases, and the fourth fact only a consumer can state.
+#
+# brenn's `surface_processor_assets` transpiles with `@brenn//surface:jco`, a
+# tool whose npm package store lives in brenn's `surface` package. Through
+# 3.4.1, `npm_package_store` computes the store's relative link targets one
+# character short when the store sits in an external repository's sub-package,
+# so every transitive dependency of the tool resolves to a path that does not
+# exist and jco dies with `ERR_MODULE_NOT_FOUND` on its first import. Upstream
+# fixed it in the commit pinned below; a module override in a dependency is
+# ignored, so brenn cannot supply this and every consumer of the surface kit
+# states it until the fix is in a release.
+bazel_dep(name = "aspect_rules_js", version = "3.4.0")
+git_override(
+    module_name = "aspect_rules_js",
+    commit = "048c545230815b7b1f127f2880ec11f1e0878dc1",
+    remote = "https://github.com/aspect-build/rules_js.git",
+)
+
+# The Rust toolchain, declared here because rules_rust reads toolchain tags from
+# the root module only. Same version as brenn's — brenn's crates compile under
+# this toolchain, so a version below brenn's floor fails at compile — and the
+# wasm32 target added, because that is what a component builds for.
+RUST_VERSION = "1.95.0"
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2024",
+    extra_target_triples = ["wasm32-unknown-unknown"],
+    versions = [RUST_VERSION],
+)
+use_repo(rust, "rust_toolchains")
+
+register_toolchains("@rust_toolchains//:all")
+
+# This repository's own third-party crates. Named `demo_crates`, not `crates`:
+# rules_rust refuses two hubs of one name across modules, and brenn owns
+# `crates` and `wasm_crates`.
+#
+# Empty today. Both guests take `serde` and `serde_json` from brenn's guest
+# instance, because a derive from any other instance satisfies none of
+# brenn-guest's port bounds; the hub exists so the next dependency has a place
+# to go rather than a MODULE.bazel edit to earn.
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "demo_crates",
+    cargo_lockfile = "//:Cargo.lock",
+    lockfile = "//:cargo-bazel-lock.json",
+    manifests = ["//:Cargo.toml"],
+    supported_platform_triples = [
+        "wasm32-unknown-unknown",
+        "x86_64-unknown-linux-gnu",
+    ],
+)
+use_repo(crate, "demo_crates")

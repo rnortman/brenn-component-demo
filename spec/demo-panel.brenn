@@ -1,0 +1,99 @@
+use @demo-counter::*;
+use @chrome::*;
+
+/// A button and a number. The button publishes a click; the number is the
+/// latest total. It holds `dom` for exactly that and nothing else.
+component DemoPanel {
+  abi = processor;
+  requires = [ports, log, dom];
+  out clicks: "brenn.demo.click@1";
+  in total: "brenn.demo.total@1";
+}
+
+/// Everything in the page: the panel, the counter and the chrome, wired to each
+/// other over two page-local planes. Nothing crosses the wire, so the surface
+/// declares no grants — `local:` planes need neither `subscribe` nor `publish`,
+/// and a page that touches no server channel should hold neither.
+///
+/// The counter never wakes on its own publish (`push_depth = 0` on `total`) and
+/// always sees its last one (`retain_depth = 1`), which is the whole of its
+/// memory. `local:` planes are page-scoped, so two pages stamping this assembly
+/// do not share a total.
+assembly DemoPage(slug: String, skin: String) {
+  surface page {
+    slug = f"{slug}";
+    grants = [];
+    skin = skin;
+    new panel: DemoPanel {
+      grants = [ports, log, dom];
+      out clicks -> "local:demo.clicks";
+      in total <- "local:demo.total" { push_depth = 1; retain_depth = 1; }
+    }
+    new counter: DemoCounter {
+      grants = [ports, log];
+      in clicks <- "local:demo.clicks" { push_depth = 8; retain_depth = 8; }
+      io total <-> "local:demo.total" { push_depth = 0; retain_depth = 1; }
+    }
+    new chrome: Chrome {
+      grants = [ports, log, dom, page-dom];
+      chrome = true;
+      in theme <- "local:brenn/theme" { push_depth = 1; }
+      in link-state <- "local:brenn/link-state" { push_depth = 1; }
+      in surface-state <- "local:brenn/surface-state" { push_depth = 1; }
+      in toast <- "local:brenn/toast" { push_depth = 8; }
+      io toast-tick { push_depth = 1; retain_depth = 2; }
+    }
+  }
+}
+
+/// The same page with the counter moved to the backend: the two components now
+/// talk over ephemeral channels that live in the server, so the panel's publish
+/// and subscribe are authority the surface must hold.
+///
+/// One artifact, two hostings, one page's worth of behaviour either way. The
+/// grammar admits a `surface` and a top-level `new` in one assembly; this is
+/// what that form is for.
+assembly DemoSplitPage(slug: String, skin: String) {
+  /// Clicks on their way to the backend counter.
+  channel clicks at f"ephemeral:{slug}.clicks" {
+    description = "Panel clicks for the backend-hosted demo counter.";
+    push_depth = 8;
+    retain_depth = 8;
+    doctype = "brenn.demo.click@1";
+  }
+  /// The running total on its way back to the page.
+  channel total at f"ephemeral:{slug}.total" {
+    description = "The running click total, latest-wins.";
+    push_depth = 1;
+    retain_depth = 1;
+    doctype = "brenn.demo.total@1";
+  }
+
+  surface page {
+    slug = f"{slug}";
+    grants = [subscribe, publish];
+    skin = skin;
+    new panel: DemoPanel {
+      grants = [ports, log, dom];
+      out clicks -> clicks;
+      in total <- total { push_depth = 1; retain_depth = 1; }
+    }
+    new chrome: Chrome {
+      grants = [ports, log, dom, page-dom];
+      chrome = true;
+      in theme <- "local:brenn/theme" { push_depth = 1; }
+      in link-state <- "local:brenn/link-state" { push_depth = 1; }
+      in surface-state <- "local:brenn/surface-state" { push_depth = 1; }
+      in toast <- "local:brenn/toast" { push_depth = 8; }
+      io toast-tick { push_depth = 1; retain_depth = 2; }
+    }
+  }
+
+  new counter: DemoCounter {
+    grants = [ports, log];
+    activation_burst = 60;
+    activation_min_period_ms = 100;
+    in clicks <- clicks { push_depth = 8; retain_depth = 8; }
+    io total <-> total { push_depth = 0; retain_depth = 1; }
+  }
+}

@@ -1,0 +1,49 @@
+// Everything both deployer documents say that is not an environment setting.
+//
+// `dev.brenn` and `e2e.brenn` differ only in a port and three state paths;
+// everything else about them is one arrangement, and an arrangement written
+// twice drifts. The browser gate asserts against `e2e.brenn` and a deployer
+// copies `dev.brenn`, so a page or a stamp added to one and not the other is a
+// green gate over something nobody ships. There is one copy, here.
+//
+// What cannot live here: the `server`, `database`, `logging`, `claude_defaults`,
+// `observability` and `surface_description` blocks. Those are top-level
+// configuration sections rather than declarations, and a module carries
+// declarations.
+
+use describe::*;
+use @chrome::*;
+use @demo-counter::*;
+use @demo-panel::*;
+
+/// The one app this deployment defines. A brenn instance with no app refuses to
+/// start, and the demo is about pages rather than conversations, so this is the
+/// smallest one that boots: a sandbox agent holding no authority on the bus.
+agent Demo {
+  name = "Demo";
+  description = "The sandbox agent this demo deployment defines so brenn has an app";
+  icon = "🔧";
+  working_dir = ".";
+}
+
+/// The whole arrangement, stamped once by each root document: both pages and
+/// the self-description stamps that let a browser ask a surface what it is.
+///
+/// The app is not in here. An agent's identity is derived from its handle, and
+/// a handle inside an assembly is qualified by the stamp's, which no agent
+/// identity may be; so the class is declared above and each root document
+/// stamps it in one line.
+assembly DemoDeployment() {
+  new demo: DemoPage(slug = "demo", skin = "bench");
+  new split: DemoSplitPage(slug = "demo-split", skin = "bench");
+
+  // One per surface slug and one per kind the pages instantiate, chrome
+  // included: a deployment whose stamps are missing panics at boot with every
+  // missing channel named at once, and nothing before boot sees it — not the
+  // fit test, not `config-check`.
+  new demo_desc: SurfaceDescription(slug = "demo");
+  new split_desc: SurfaceDescription(slug = "demo-split");
+  new panel_kind_desc: KindDescription(kind = "demo-panel");
+  new counter_kind_desc: KindDescription(kind = "demo-counter");
+  new chrome_kind_desc: KindDescription(kind = "chrome");
+}

@@ -1,0 +1,14 @@
+/// A running click total with no memory of its own: the total it last published
+/// is the retained message on `total`, read back on the next activation. That is
+/// what lets one artifact run on either host — the backend instantiates per
+/// activation, the page once per lifetime, and a component that keeps its state
+/// on a retained channel cannot tell which it got.
+///
+/// The capability set is inside the intersection of the two hosts' legal sets,
+/// which is what "runs on the surface or the backend" means mechanically.
+component DemoCounter {
+  abi = processor;
+  requires = [ports, log];
+  in clicks: "brenn.demo.click@1";
+  io total: "brenn.demo.total@1";
+}

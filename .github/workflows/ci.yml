@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Every job only reads the tree. Pinned here so a permissive repo-level default
+# cannot silently hand a write-capable token to cached actions, a downloaded
+# tool, or anything `make` executes.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check (fmt, clippy, test, browser)
+    runs-on: ubuntu-latest
+    # Cold, this compiles brenn's WASM host closure (wasmtime, sqlite) into this
+    # module's own output base for the test crate, and the server binary's
+    # closure on top of it for the browser suite. That is the price of testing
+    # against the real hosts rather than a mock; the cache makes the second run
+    # minutes. 120 bounds the cold case without flaking it.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      # The only system dependency. rules_cc autodetects lld if present, else
+      # gold, and hard-wires the winner into every link. This image ships gold,
+      # which rustc has deprecated and warns about on every link.
+      - name: Install lld
+        run: sudo apt-get update && sudo apt-get install -y lld
+
+      # `LANE=ci` points both bazel caches inside the workspace so actions/cache
+      # can carry them. One entry for the pair: they are restored and saved
+      # together, and a run that had one without the other would fetch or
+      # rebuild the missing half anyway. Restore and save are split so a red run
+      # still banks the actions it did complete.
+      - name: Restore bazel caches
+        id: bazel-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .bazel-disk-cache
+            .bazel-repo-cache
+          key: bazel-disk-${{ github.sha }}
+          restore-keys: bazel-disk-
+
+      - run: make check LANE=ci
+
+      # Chromium is the one machine-level prerequisite the Makefile leaves to
+      # the caller; `npm ci` is the Makefile's own prerequisite.
+      - name: Install Playwright chromium
+        run: |
+          cd e2e && npm ci && npx playwright install --with-deps chromium
+
+      - run: make e2e LANE=ci
+
+      # Playwright trace and server log for diagnosing failures.
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            e2e/test-results
+            target/e2e/logs
+          if-no-files-found: ignore
+
+      - name: Save bazel caches
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .bazel-disk-cache
+            .bazel-repo-cache
+          key: bazel-disk-${{ github.sha }}
+
+  scrub:
+    name: scrub
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installed outside the checkout: the tree scan below must see repo
+      # content only, not the scanner's own binary artifacts.
+      #
+      # The sha256 is the release's published checksum for this asset. Release
+      # assets are mutable, so the version self-check alone proves nothing — a
+      # swapped binary reports whatever version it likes and then writes the
+      # report that decides this job's verdict. The hash is the real gate; the
+      # version check stays as a secondary sanity line.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.0
+          GITLEAKS_SHA256: 79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version | grep -qx "${GITLEAKS_VERSION}"
+
+      # --exit-code 0 makes leaks a reporting outcome, so a nonzero exit here
+      # means gitleaks itself malfunctioned.
+      - name: Scan tree
+        run: |
+          "$RUNNER_TEMP/gitleaks" dir . \
+            --config .gitleaks.toml \
+            --report-format json \
+            --report-path "$RUNNER_TEMP/findings.json" \
+            --no-banner \
+            --exit-code 0 \
+            --log-level error
+
+      - name: Report
+        run: |
+          count=$(jq '[.[] | select(.RuleID != "ephemeral-reference")] | length' "$RUNNER_TEMP/findings.json")
+          if [ "$count" -ne 0 ]; then
+            echo "::error::$count scrub finding(s) in tree scan"
+            jq -r '.[] | select(.RuleID != "ephemeral-reference")
+                   | "\(.File):\(.StartLine): [\(.RuleID)] \(.Description)"' "$RUNNER_TEMP/findings.json"
+            exit 1
+          fi
+          echo "clean"

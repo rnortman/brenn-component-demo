@@ -1,0 +1,54 @@
+// The hermetic twin of `dev.brenn`, driven by `make e2e`.
+//
+// Two documents rather than one for the reason brenn keeps two: `make e2e`
+// empties its state directory on every run and must never clash with the port
+// or the database a developer's `make run` holds. The stamps and the pages come
+// from `deployment.brenn`, which both documents stamp; only the port and the
+// state paths differ, and the shared module makes that structural rather than a promise.
+
+// Both pages, their stamps and the app, in one place both documents stamp: the
+// only intended difference between this file and its twin is the environment
+// settings below.
+use deployment::*;
+
+/// Where the server listens and what it believes about the proxy in front. The
+/// frontend tree is brenn's build output, reached through this module's bazel
+/// symlink; the surface trees are boot flags, not config, so they are named on
+/// the command line instead.
+server {
+  bind_address = "127.0.0.1:3300";
+  static_dir = ".bazel-bin/external/brenn+/frontend/dist";
+  secure_cookies = false;
+  public_url = "http://127.0.0.1:3300";
+}
+
+database {
+  path = "target/e2e/demo.db";
+}
+
+logging {
+  log_dir = "target/e2e/logs";
+  console_level = debug;
+  file_level = debug;
+}
+
+/// The MCP script path must resolve at runtime — nothing checks it until a user
+/// opens the app. Staged from brenn by `//:noop_mcp`.
+claude_defaults {
+  mcp_script_path = ".bazel-bin/noop_mcp.py";
+  model = "sonnet";
+}
+
+/// Where surface error reports land. This deployment runs no alerter.
+observability {
+  surface_error_channel = "brenn:surface-errors";
+}
+
+/// Self-description channel prefix and heartbeat cadence for surfaces.
+surface_description {
+  prefix = "surface";
+  status_interval_secs = 60;
+}
+
+new demo-app: Demo;
+new deployment: DemoDeployment;

@@ -1,0 +1,17 @@
+# The consumer-side half of brenn's serde coherence: fltk-serde-core must link
+# the serde instance `@brenn//brenn-dsl` links, or `dsl_cli` — built here from
+# source to scaffold the port modules and run the gates — fails to compile with
+# mismatched-instance errors.
+build --@fltk//crates/fltk-serde-core:serde=@brenn//brenn-dsl:fltk_serde
+
+build --symlink_prefix=.bazel-
+
+# Disable Aspect rules_js telemetry inherited from brenn's module graph.
+common --repo_env=DO_NOT_TRACK=1
+
+# brenn's lint posture, copied: this repository ships product code, and the
+# aspects are what hold it to the same bar brenn's own crates meet.
+build:clippy --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build:clippy --output_groups=+clippy_checks
+build:rustfmt --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
+build:rustfmt --output_groups=+rustfmt_checks

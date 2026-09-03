@@ -1,0 +1,7 @@
+# The backend packages this repository ships, one name per line. Must match
+# the set of `component_package` targets exactly; `deployed_components_test`
+# enforces this.
+#
+# The panel is absent on purpose: it holds `dom`, so it is page-hosted only and
+# ships as a surface kind, which is a different carrier.
+demo-counter

@@ -1,0 +1,12 @@
+# The host-side test crate. Bazel-only, like the rest of this repository; the
+# manifest exists so the workspace and the crate hub see the same member list.
+# No dependency table: deps are Bazel labels, not registry crates.
+[package]
+name = "demo-tests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license.workspace = true
+
+[lib]
+crate-type = ["rlib"]

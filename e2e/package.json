@@ -1,0 +1,10 @@
+{
+  "name": "brenn-component-demo-e2e",
+  "version": "1.0.0",
+  "description": "Browser end-to-end test for the brenn-component-demo pages (Playwright)",
+  "private": true,
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

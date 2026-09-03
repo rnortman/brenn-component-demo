@@ -1,0 +1,25 @@
+# Bazel's convenience symlinks (--symlink_prefix in .bazelrc).
+.bazel-*
+
+# The scaffolded port modules: generated from the specs at build time, never
+# tracked, so an edited spec cannot leave a stale copy compiling.
+*/src/spec.rs
+
+# The e2e harness's installed packages, browsers, and run output.
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/.auth/
+
+# `make run` and `make e2e` state.
+target/
+
+# The `LANE=ci` bazel caches, which live in the workspace so a CI cache action
+# can carry them.
+.bazel-disk-cache/
+.bazel-repo-cache/
+
+.gitleaks.local.toml
+CLAUDE.local.md
+.claude/settings.local.json

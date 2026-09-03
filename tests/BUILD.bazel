@@ -1,0 +1,38 @@
+# The host-side tests: both components, against the hosts brenn ships.
+#
+# One `rust_test` rather than three, because the three suites share the script
+# the two counter halves are compared on and a shared constant in three separate
+# test binaries is three copies that can drift.
+#
+# The artifacts arrive as runfiles and are named to the test through the
+# environment. A `CARGO_MANIFEST_DIR`-relative walk is brenn's in-tree
+# convention and does not survive the move out: this crate sits wherever its own
+# repository puts it, and the components are built, not checked in.
+load("@rules_rust//rust:defs.bzl", "rust_test")
+
+# `medium` rather than `small`: the suite itself runs in seconds, but each of
+# the three wasmtime instantiations compiles a component at load, and a CI
+# runner is an order of magnitude slower than a workstation. The same budget
+# brenn gives its own component-loading suites.
+rust_test(
+    name = "tests",
+    size = "medium",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "demo_tests",
+    crate_root = "src/lib.rs",
+    data = [
+        "//demo-counter:component",
+        "//demo-panel:component",
+    ],
+    edition = "2024",
+    env = {
+        "DEMO_COUNTER_WASM": "$(rootpath //demo-counter:component)",
+        "DEMO_PANEL_WASM": "$(rootpath //demo-panel:component)",
+    },
+    deps = [
+        "@brenn//brenn-envelope",
+        "@brenn//brenn-wasm",
+        "@brenn//brenn-wasm-dispatch",
+        "@brenn//surface/page-harness",
+    ],
+)

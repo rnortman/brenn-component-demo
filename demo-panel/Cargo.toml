@@ -1,0 +1,12 @@
+# The panel guest. No dependency table: serde and serde_json come from
+# brenn's guest instance, named by the BUILD file, because a derive from any
+# other instance satisfies none of brenn-guest's port bounds.
+[package]
+name = "demo-panel"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

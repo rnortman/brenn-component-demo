@@ -1,0 +1,97 @@
+# The release this repository deploys, and the gates that hold it together.
+#
+# Two components, three trees. The panel holds `dom`, so it ships as a surface
+# kind alone. The counter ships twice — once as a surface kind, once as a
+# backend package — from one artifact, which is what "runs on either host"
+# means as a build fact rather than a claim.
+load("@brenn//bazel/surface:dist.bzl", "surface_processor_assets")
+load("@brenn//bazel/wasm:defs.bzl", "component_bundle", "component_package", "config_fit_test", "deployed_components_test")
+
+# The kind must be the kebab fold of the class name — staging refuses anything
+# else — and it is what a URL and a config both spell.
+surface_processor_assets(
+    name = "demo-panel_assets",
+    component = "//demo-panel:component",
+    kind = "demo-panel",
+    spec = "//spec:demo-panel.brenn",
+)
+
+surface_processor_assets(
+    name = "demo-counter_assets",
+    component = "//demo-counter:component",
+    kind = "demo-counter",
+    spec = "//spec:demo-counter.brenn",
+)
+
+# The same artifact the surface stage transpiles.
+component_package(
+    name = "demo-counter_package",
+    component = "//demo-counter:component",
+    package = "demo-counter",
+    spec = "//spec:demo-counter.brenn",
+    world = "brenn:processor",
+)
+
+deployed_components_test(
+    name = "deployed_components_test",
+    manifest = "deployed-components.txt",
+    packages = [":demo-counter_package"],
+)
+
+# The bundle: `components/`, `surface/` and `modules/`, installed under one root
+# each beside brenn's own release. The counter's specification is staged once as
+# `modules/demo-counter.brenn` although two trees carry a copy of it; the two
+# copies must be byte-identical or the build fails naming both.
+component_bundle(
+    name = "bundle",
+    manifest = "deployed-components.txt",
+    packages = [":demo-counter_package"],
+    # The authored module root; must be byte-equal to the staged `modules/`.
+    spec_root = ["//spec:modules"],
+    surface_kinds = [
+        ":demo-panel_assets",
+        ":demo-counter_assets",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# brenn's noop MCP server, staged into this module's output tree so both
+# deployer documents can name a path that exists in a checkout. The path must
+# resolve at runtime; staging brenn's copy avoids vendoring one that would drift.
+genrule(
+    name = "noop_mcp",
+    srcs = ["@brenn//:noop_mcp.py"],
+    outs = ["noop_mcp.py"],
+    cmd = "cp $< $@",
+    visibility = ["//visibility:public"],
+)
+
+# The deployer's fit checks: each root document compiled against the module root
+# a deployment installs this bundle into, plus brenn's own — a page stamps
+# brenn's `Chrome`, so brenn's module root is on the search path here exactly as
+# it is on the host.
+config_fit_test(
+    name = "dev_fit",
+    config = "config/dev.brenn",
+    modules = [
+        "//spec:modules",
+        "@brenn//:modules",
+    ],
+    tree = [
+        "config/deployment.brenn",
+        "config/describe.brenn",
+    ],
+)
+
+config_fit_test(
+    name = "e2e_fit",
+    config = "config/e2e.brenn",
+    modules = [
+        "//spec:modules",
+        "@brenn//:modules",
+    ],
+    tree = [
+        "config/deployment.brenn",
+        "config/describe.brenn",
+    ],
+)

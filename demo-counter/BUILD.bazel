@@ -1,0 +1,27 @@
+# The counter guest: scaffold, core module, component.
+load("@brenn//bazel/wasm:defs.bzl", "guest_spec_scaffold", "wasm_component", "wasm_guest_cdylib")
+
+# `src/spec.rs` is generated from the specification and untracked: editing the
+# spec rebuilds it, and a guest that has not kept up stops compiling.
+guest_spec_scaffold(
+    name = "spec",
+    spec = "//spec:demo-counter.brenn",
+)
+
+# Serde must come from brenn's guest instance, not this module's hub: a derive
+# from a different crate instance satisfies none of brenn-guest's port bounds.
+wasm_guest_cdylib(
+    name = "demo-counter",
+    generated_srcs = {"src/spec.rs": ":spec"},
+    deps = [
+        "@brenn//brenn-wasm/components/guest:brenn-guest",
+        "@brenn//brenn-wasm/components/guest:serde",
+        "@brenn//brenn-wasm/components/guest:serde_json",
+    ],
+)
+
+wasm_component(
+    name = "component",
+    module = ":demo-counter",
+    visibility = ["//visibility:public"],
+)
