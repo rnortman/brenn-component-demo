@@ -1,0 +1,15 @@
+// A page stamped under a principal that does not hold what the page confers.
+//
+// The out-of-tree half of the stamp ceiling, driven at its refusal: this
+// repository's two fit gates are passing cases, and a ceiling that stopped
+// being read — an `under` clause dropped, a conferred word never collected —
+// would leave both of them green while a bundle's arrangement quietly held
+// authority no deployer wrote. `demo-panel`'s page holds `dom`, and this
+// principal does not.
+use @demo-panel::*;
+
+principal narrow_ui {
+  grants = [log, page-dom, ports];
+}
+
+new demo: DemoPage(slug = "demo", skin = "bench") under narrow_ui;

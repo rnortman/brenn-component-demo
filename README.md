@@ -91,14 +91,24 @@ commit. Re-copy all three when the brenn pin moves.
 - `config/` — the deployer's documents. `dev.brenn` carries the environment
   settings and one stamp; `e2e.brenn` is its hermetic twin and differs in a port
   and three state paths and nothing else. Everything they share —
-  `assembly DemoDeployment`, holding both pages and every self-description a
-  boot requires — is `deployment.brenn`, so the two cannot drift apart.
-  `describe.brenn` is a copy of brenn's `config/surfaces.brenn`, because the
-  self-description vocabulary is config-tree and a bundle cannot `use @` it;
-  that copy has a shelf life (brenn's `TODO(surface-description-vocabulary-packaged)`).
+  `assembly DemoDeployment`, holding both pages and the self-description stamps
+  `config-check` requires — is `deployment.brenn`, so the arrangement cannot
+  drift apart. The `demo_ui` ceiling is the deliberate exception: each root
+  declares its own and passes it in, because a ceiling is one deployment's
+  consent, so nothing compares the two and a word wanted in both is two edits.
+  The self-description vocabulary arrives as a library module, imported in
+  `deployment.brenn` with `use @surface-description::*;`, so this repository
+  keeps no copy of it.
   Both documents name build outputs of this checkout where a deployment would
   name installed paths — the frontend tree, and the noop MCP script `//:noop_mcp`
   stages out of brenn — so `make run` is the whole system without an install.
+- `fit/`, `tools/config_check.sh` — the gates over the deployer documents that
+  are not the documents themselves. Each `fit/*.brenn` is a root that must be
+  refused, and `BUILD.bazel` generates one target per file from a glob against a
+  map of the refusal each must earn, so a fixture nothing names is a build
+  failure rather than a case that never runs. The script runs `brenn
+  config-check` over both root documents — the verb an installer runs before it
+  stops a service, and the only gate here that lowers.
 - `tests/` — the host-side tests. The counter is driven twice, once through
   `brenn_wasm::ProcessorComponent` and once through `brenn_page_harness`, and
   both runs are compared against one constant: that is "one artifact, two
@@ -139,11 +149,35 @@ config:
 
 ```
 use @demo-panel::*;
-new demo: DemoPage(slug = "demo", skin = <the deployment's skin>);
+use @surface-description::*;
+new demo: DemoPage(slug = "demo", skin = <the deployment's skin>) {
+  grants = [dom, log, page-dom, ports];
+}
+new surface_commons: SurfaceCommons;
 new demo_desc: SurfaceDescription(slug = "demo");
 new demo_panel_desc: KindDescription(kind = "demo-panel");
 new demo_counter_desc: KindDescription(kind = "demo-counter");
+new chrome_kind_desc: KindDescription(kind = "chrome");
 ```
 
-The description stamps are checked at boot and nowhere earlier — not by the fit
-test, not by `config-check` — so a page without them starts and then panics.
+A `KindDescription` per kind the pages instantiate, which is one more than the
+kinds this bundle ships: `DemoPage` places brenn's `Chrome` around the panel, so
+`chrome` is described here too or the document is refused naming the two
+addresses it derives for it.
+
+The body on the page stamp is its ceiling: an arrangement a bundle author wrote
+holds what the deployment stamps it with and no more, so the words are the
+deployer's to write and the compiler refuses the difference — naming the words
+it would have to add. A deployment stamping several arrangements under one
+consent writes a `principal` instead and passes it in, which is what
+`config/dev.brenn` and `config/deployment.brenn` do here. The description
+stamps need no ceiling: they declare channels and confer nothing.
+
+A deployment missing a `SurfaceDescription` or a `KindDescription` is refused
+with every missing channel named at once, by `config-check` and so by the bundle
+installer's pre-stop check. A missing `SurfaceCommons` is refused by the
+error-lane check instead, naming `brenn:surface-errors` alone: the commons stamp
+declares the channel `observability.surface_error_channel` points at, and that
+validator runs first, so its message is the whole report. Either way the refusal
+is before an installer stops a service, and `//:config_check` runs the same
+check over this repository's own documents.

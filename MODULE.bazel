@@ -19,19 +19,17 @@ module(
     version = "0.1.0",
 )
 
-# The brenn commit every rule, macro and host crate here comes from. Build-time
-# contracts are hard-cut at this pin: a bump is when a macro rename or a changed
-# generated shape is paid for, and never between bumps.
+# Where every rule, macro and host crate here comes from. Build-time contracts
+# are hard-cut at this pin: a bump is when a macro rename or a changed generated
+# shape is paid for, and never between bumps.
 #
-# The commit must be pushed to brenn's public GitHub remote — this fetch is
-# anonymous, and one that was never pushed fails here. That it is also on `main`
-# is policy, checked by nothing: GitHub serves any commit object it holds by
-# SHA. `make check BRENN_OVERRIDE=<path>` is how work against an unpushed brenn
-# is done.
+# The fetch is anonymous, so the commit has to be one brenn's public remote
+# serves. Work against an unpushed brenn with `make check BRENN_OVERRIDE=…`,
+# never by editing this.
 bazel_dep(name = "brenn", version = "")
 git_override(
     module_name = "brenn",
-    commit = "148f2511666d94fde1fc9226f5bf50e0ed4d2f1f",
+    commit = "3317cdd9b77c5d502118c65db18d9ded4b90e810",
     remote = "https://github.com/rnortman/brenn.git",
 )
 
@@ -48,6 +46,11 @@ git_override(
 )
 
 bazel_dep(name = "rules_rust", version = "0.73.0")
+
+# `sh_test`, for the `config-check` gate over both deployer documents. Bazel no
+# longer carries the shell rules natively, and a load from a dependency's
+# transitive dep is not visible to this module, so the dep is named here.
+bazel_dep(name = "rules_shell", version = "0.6.1")
 
 # rules_js, ahead of its releases, and the fourth fact only a consumer can state.
 #

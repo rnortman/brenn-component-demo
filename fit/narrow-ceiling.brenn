@@ -1,0 +1,15 @@
+// The same page under a principal that does hold `dom`, and a stamp whose own
+// ceiling hands down less than the principal it is under.
+//
+// What this pins that the sibling case does not: the body is read. A stamp's
+// ceiling that was dropped on the floor would leave the principal's authority
+// as the ceiling, and this document would compile.
+use @demo-panel::*;
+
+principal wide_ui {
+  grants = [dom, log, page-dom, ports];
+}
+
+new demo: DemoPage(slug = "demo", skin = "bench") under wide_ui {
+  grants = [log, page-dom, ports];
+}

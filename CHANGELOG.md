@@ -25,3 +25,20 @@ build-time contract is allowed to move.
 - CI over two jobs: the Bazel gate with clippy and rustfmt aspects plus the
   browser suite, and a secrets scan against the tracked ruleset with the
   scanner pinned by version and sha256.
+- Stamp ceilings on pages, declared through a `demo_ui` principal each
+  deployer document owns. The compiler refuses a page that holds authority the
+  principal does not carry, so a bundle author conferring a new word is caught
+  at build time rather than at deployment.
+- A `config-check` gate (`//:config_check`) that lowers both deployer
+  documents the way the bundle installer does before it stops a service. A
+  self-description stamp missing from the shared assembly is now a red gate
+  rather than a boot panic.
+- Fit refusal fixtures under `fit/`, one per way the stamp ceiling can fail to
+  hold: narrow principal, narrow body, wide body, and the parameter hop the
+  shipped documents use. BUILD generates targets from a glob, so a fixture
+  nothing names is a build failure.
+- Brenn pin set to `3317cdd9` via `git_override`; the `local_path_override`
+  development shim is retired.
+- The self-description vocabulary (`SurfaceDescription`, `KindDescription`,
+  `SurfaceCommons`) is now imported as a brenn-shipped library module rather
+  than carried as a local copy; `config/describe.brenn` is deleted.

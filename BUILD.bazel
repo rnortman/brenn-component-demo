@@ -4,8 +4,9 @@
 # kind alone. The counter ships twice — once as a surface kind, once as a
 # backend package — from one artifact, which is what "runs on either host"
 # means as a build fact rather than a claim.
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@brenn//bazel/surface:dist.bzl", "surface_processor_assets")
-load("@brenn//bazel/wasm:defs.bzl", "component_bundle", "component_package", "config_fit_test", "deployed_components_test")
+load("@brenn//bazel/wasm:defs.bzl", "component_bundle", "component_package", "config_fit_refusal_test", "config_fit_test", "deployed_components_test")
 
 # The kind must be the kebab fold of the class name — staging refuses anything
 # else — and it is what a URL and a config both spell.
@@ -66,32 +67,86 @@ genrule(
     visibility = ["//visibility:public"],
 )
 
-# The deployer's fit checks: each root document compiled against the module root
+# The module roots every gate over a deployer document resolves against: the one
 # a deployment installs this bundle into, plus brenn's own — a page stamps
 # brenn's `Chrome`, so brenn's module root is on the search path here exactly as
-# it is on the host.
+# it is on the host. Named once because the list is the claim each gate makes; a
+# third root added to three of four targets is a gate that stays green while
+# compiling against a root set no deployment has.
+DEPLOYMENT_MODULE_ROOTS = [
+    "//spec:modules",
+    "@brenn//:modules",
+]
+
+# The deployer's fit checks: each root document compiled against those roots.
 config_fit_test(
     name = "dev_fit",
     config = "config/dev.brenn",
-    modules = [
-        "//spec:modules",
-        "@brenn//:modules",
-    ],
+    modules = DEPLOYMENT_MODULE_ROOTS,
     tree = [
         "config/deployment.brenn",
-        "config/describe.brenn",
     ],
 )
 
 config_fit_test(
     name = "e2e_fit",
     config = "config/e2e.brenn",
-    modules = [
-        "//spec:modules",
-        "@brenn//:modules",
-    ],
+    modules = DEPLOYMENT_MODULE_ROOTS,
     tree = [
         "config/deployment.brenn",
-        "config/describe.brenn",
+    ],
+)
+
+# The other direction. Both gates above are passing cases, and the ceiling this
+# repository's pages are stamped under is the one thing in the arrangement that
+# a compiler bug could stop enforcing without any of them noticing: the pages
+# would keep rendering and the bundle would keep building, holding authority no
+# deployer wrote. Each fixture is refused for one reason, named here.
+#
+# The refusal each fixture must earn, keyed by the fixture's stem. The targets
+# below are generated from `glob(["fit/*.brenn"])` and read this map, so a
+# fixture dropped into `fit/` and named by nothing is a load-time failure naming
+# the file rather than a case its author believes is gated and which never runs.
+FIT_REFUSALS = {
+    "narrow-principal": "add `dom` to `narrow_ui`",
+    "narrow-ceiling": "add `dom` to this stamp's ceiling — `wide_ui` holds it",
+    "parameter-principal": "add `dom` to `narrow_ui`",
+    "wide-ceiling": "`publish` caps nothing — no instance stamped by `DemoPage` from `@demo-panel` holds it",
+}
+
+[
+    config_fit_refusal_test(
+        name = fixture[len("fit/"):-len(".brenn")].replace("-", "_") + "_fit_refusal",
+        config = fixture,
+        expect = FIT_REFUSALS[fixture[len("fit/"):-len(".brenn")]],
+        modules = DEPLOYMENT_MODULE_ROOTS,
+    )
+    for fixture in glob(["fit/*.brenn"])
+]
+
+# The gate the fit checks cannot be: `config-check` lowers, and the refusals
+# this repository's own documents rely on — a missing self-description stamp
+# above all — live in lowering. The same binary and the same verb the bundle
+# installer runs before it stops a service, over both root documents against the
+# module roots a host resolves them from.
+sh_test(
+    name = "config_check",
+    size = "small",
+    srcs = ["tools/config_check.sh"],
+    args = [
+        "$(rootpath @brenn//brenn:brenn)",
+        "$(rootpaths //spec:modules)",
+        "$(rootpaths @brenn//:modules)",
+        "--",
+        "$(rootpath config/dev.brenn)",
+        "$(rootpath config/e2e.brenn)",
+    ],
+    data = [
+        "config/deployment.brenn",
+        "config/dev.brenn",
+        "config/e2e.brenn",
+        "//spec:modules",
+        "@brenn//:modules",
+        "@brenn//brenn:brenn",
     ],
 )

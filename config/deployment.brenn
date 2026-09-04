@@ -1,17 +1,24 @@
 // Everything both deployer documents say that is not an environment setting.
 //
-// `dev.brenn` and `e2e.brenn` differ only in a port and three state paths;
-// everything else about them is one arrangement, and an arrangement written
-// twice drifts. The browser gate asserts against `e2e.brenn` and a deployer
-// copies `dev.brenn`, so a page or a stamp added to one and not the other is a
-// green gate over something nobody ships. There is one copy, here.
+// `dev.brenn` and `e2e.brenn` differ in a port, three state paths and the
+// `demo_ui` ceiling they each declare and pass in; everything else about them
+// is one arrangement, and an arrangement written twice drifts. The browser gate
+// asserts against `e2e.brenn` and a deployer copies `dev.brenn`, so a page or a
+// stamp added to one and not the other is a green gate over something nobody
+// ships. There is one copy, here.
+//
+// The ceiling is the exception on purpose. It is one deployment's consent to
+// what a bundle's arrangement may hold, and each root document is one
+// deployment, so the two are free to differ and this assembly takes the
+// principal as a parameter to keep them free. The cost is real and accepted:
+// nothing compares the two, so a word wanted in both is two edits.
 //
 // What cannot live here: the `server`, `database`, `logging`, `claude_defaults`,
 // `observability` and `surface_description` blocks. Those are top-level
 // configuration sections rather than declarations, and a module carries
 // declarations.
 
-use describe::*;
+use @surface-description::*;
 use @chrome::*;
 use @demo-counter::*;
 use @demo-panel::*;
@@ -33,14 +40,24 @@ agent Demo {
 /// a handle inside an assembly is qualified by the stamp's, which no agent
 /// identity may be; so the class is declared above and each root document
 /// stamps it in one line.
-assembly DemoDeployment() {
-  new demo: DemoPage(slug = "demo", skin = "bench");
-  new split: DemoSplitPage(slug = "demo-split", skin = "bench");
+assembly DemoDeployment(ui: Principal) {
+  /// The click page, whose components talk over page-local planes only.
+  new demo: DemoPage(slug = "demo", skin = "bench") under ui {
+    grants = [dom, log, page-dom, ports];
+  }
+  /// The split page, whose surface reaches the bus.
+  new split: DemoSplitPage(slug = "demo-split", skin = "bench") under ui;
 
   // One per surface slug and one per kind the pages instantiate, chrome
-  // included: a deployment whose stamps are missing panics at boot with every
-  // missing channel named at once, and nothing before boot sees it — not the
-  // fit test, not `config-check`.
+  // included. A missing `SurfaceDescription` or `KindDescription` is refused at
+  // `config-check` with every missing channel named at once; a missing
+  // `SurfaceCommons` is refused by the error-lane check instead, naming
+  // `brenn:surface-errors` alone, because this stamp declares the channel
+  // `observability.surface_error_channel` points at and that validator reports
+  // first. `config-check` is what the bundle installer runs before it stops the
+  // service, and `//:config_check` runs it here: `dev_fit` and `e2e_fit`
+  // compile and derive without lowering, so they see none of this.
+  new surface_commons: SurfaceCommons;
   new demo_desc: SurfaceDescription(slug = "demo");
   new split_desc: SurfaceDescription(slug = "demo-split");
   new panel_kind_desc: KindDescription(kind = "demo-panel");

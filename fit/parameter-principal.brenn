@@ -1,0 +1,19 @@
+// The principal reaching the stamp as an assembly parameter, which is the shape
+// both shipped documents have and neither sibling fixture covers.
+//
+// `dev.brenn` and `e2e.brenn` declare `demo_ui` and hand it to
+// `DemoDeployment(ui: Principal)`; the stamps inside are `under ui`. A
+// regression confined to that hop — a parameter resolving to nothing, or to the
+// wrong principal — would leave the two direct-`under` fixtures green while the
+// shipped pages held whatever the specification confers.
+use @demo-panel::*;
+
+principal narrow_ui {
+  grants = [log, page-dom, ports];
+}
+
+assembly Pages(ui: Principal) {
+  new demo: DemoPage(slug = "demo", skin = "bench") under ui;
+}
+
+new pages: Pages(ui = narrow_ui);

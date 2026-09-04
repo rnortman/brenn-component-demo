@@ -18,9 +18,9 @@ else
 $(error LANE must be ci, cd or unset, not "$(LANE)")
 endif
 
-# Work against an unpushed brenn. `MODULE.bazel`'s `git_override` fetches from
-# public GitHub, so a pin that is not on `main` fails at module resolution; this
-# points the module graph at a local checkout instead. Never set in CI.
+# Work against an unpushed brenn: this points the module graph at a local
+# checkout, because a pin fetches from public GitHub anonymously and a commit
+# that remote does not serve fails at module resolution. Never set in CI.
 BRENN_OVERRIDE ?=
 ifneq ($(BRENN_OVERRIDE),)
 LANE_FLAGS += --override_module=brenn=$(BRENN_OVERRIDE)

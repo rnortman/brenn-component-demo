@@ -49,5 +49,14 @@ surface_description {
   status_interval_secs = 60;
 }
 
+/// What every page this deployment hosts may hold: the page words, and the two
+/// plane words the split page needs to reach the bus. Declared here rather than
+/// beside the stamps it caps because a ceiling is one deployment's consent, and
+/// each root document is one deployment; `deployment.brenn`'s header carries
+/// the argument and what the duplication costs.
+principal demo_ui {
+  grants = [dom, log, page-dom, ports, publish, subscribe];
+}
+
 new demo-app: Demo;
-new deployment: DemoDeployment;
+new deployment: DemoDeployment(ui = demo_ui);

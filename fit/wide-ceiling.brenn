@@ -1,0 +1,16 @@
+// A stamp whose ceiling names more than the arrangement under it can hold.
+//
+// The direction the other fixtures do not drive. A ceiling is a statement of
+// consent, so a word nothing reaches is refused as dead config — which is what
+// keeps the narrow body on `config/deployment.brenn`'s click page honest: the
+// day `@demo-panel`'s `DemoPage` starts conferring `publish`, a bundle-side
+// change made by someone who is not the deployer, this document compiles and
+// this gate is what says so.
+//
+// Stamped under the operator rather than under a principal, so the body is the
+// whole ceiling and the refusal is about it alone.
+use @demo-panel::*;
+
+new demo: DemoPage(slug = "demo", skin = "bench") {
+  grants = [dom, log, page-dom, ports, publish];
+}
