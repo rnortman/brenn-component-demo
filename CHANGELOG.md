@@ -9,7 +9,7 @@ commit these components build against is the `git_override` pin in
 `MODULE.bazel`, and a pin bump is a change worth an entry: it is where a
 build-time contract is allowed to move.
 
-## [Unreleased]
+## [0.1.0] - 2026-09-04
 
 ### Added
 
