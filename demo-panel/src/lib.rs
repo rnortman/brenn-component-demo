@@ -5,12 +5,15 @@
 //! It holds `dom` for exactly that, and reaches every capability through the
 //! generated module, so deleting a word from the specification breaks this
 //! compile.
+//!
+//! Linear memory lives for one activation, so the one thing this component
+//! remembers — the handle of the element the number is written to — rides its
+//! retained `state` port instead. The element itself is owned by the mount, so
+//! the handle read back names what it named when it was stored.
 
 mod spec;
 
-use std::cell::RefCell;
-
-use brenn_guest::{Activation, Error, OutPort, Processor};
+use brenn_guest::{Activation, Error, OutPort, Processor, RetainedState, StateLoss};
 use serde::{Deserialize, Serialize};
 
 use crate::spec::dom;
@@ -41,26 +44,34 @@ struct Total {
 
 const CLICKS: OutPort<Click> = spec::clicks();
 
-// One instantiation backs one instance for the page's lifetime, so the view
-// handles are ordinary interior-mutable module state. A handle names the same
-// element on every activation after the one that created it.
-thread_local! {
-    static PANEL: RefCell<Option<View>> = const { RefCell::new(None) };
+/// Everything the panel remembers between activations, carried on `state`.
+#[derive(Default, Serialize, Deserialize)]
+struct Panel {
+    /// The total display, built by the mount activation. `None` only before it.
+    display: Option<dom::Node>,
 }
 
-/// The elements an activation writes to, built by the mount activation.
-struct View {
-    total: dom::Node,
-}
+impl spec::StatePayload for Panel {}
 
 struct DemoPanel;
 
 impl Processor for DemoPanel {
     fn receive(activation: Activation) -> Result<Option<String>, Error> {
-        PANEL.with(|panel| on_activation(&activation, &mut panel.borrow_mut()))?;
-        // The mount call has no reply dialect and the press is not a default
-        // action this component cancels, so both are answered with nothing.
-        Ok(None)
+        // A state body this build cannot read would start from a default with
+        // no display handle, and the mount arm would build a second view over
+        // the first. Failing the activation takes the error card instead.
+        RetainedState::around(
+            activation,
+            spec::state::<Panel>(),
+            StateLoss::FailActivation,
+            |activation, panel| {
+                on_activation(activation, panel)?;
+                // The mount call has no reply dialect and the press is not a
+                // default action this component cancels, so both are answered
+                // with nothing.
+                Ok(None)
+            },
+        )
     }
 }
 
@@ -69,17 +80,32 @@ impl Processor for DemoPanel {
 ///
 /// A mount activation windows whatever input was already pending, so the build
 /// and the render both run on it — a component is never told why it woke.
-fn on_activation(activation: &Activation, panel: &mut Option<View>) -> Result<(), Error> {
+fn on_activation(activation: &Activation, panel: &mut Panel) -> Result<(), Error> {
     if activation.sync_is(dom::MOUNT) {
-        *panel = Some(build_view());
+        // Retained state can arrive holding a display handle from an earlier
+        // mount. The host element is cleared before every mount activation, so
+        // that handle names nothing; always rebuild.
+        panel.display = Some(build_view());
     } else if let Some(port) = activation.sync() {
         on_gesture(port)?;
     }
-    let view = panel
-        .as_ref()
-        .expect("the mount activation builds the view before any other call");
+    let display = panel.display.ok_or_else(|| {
+        Error::failed("no view: the mount activation's state did not reach this one")
+    })?;
     for window in activation.delivered_windows() {
-        let spec::InPort::Total = spec::InPort::of(window)?;
+        match spec::InPort::of(window)? {
+            spec::InPort::Total => {}
+            // No state window must reach the activation body; the
+            // surrounding cell is expected to consume it. A refusal rather
+            // than a skip makes that assumption executable: a cell that
+            // stopped consuming it fails this component's suite.
+            spec::InPort::State => {
+                return Err(Error::failed(format!(
+                    "a window on {:?} reached the activation body",
+                    spec::port::STATE
+                )));
+            }
+        }
         if let Some(envelope) = window.new_envelopes().last() {
             let envelope = envelope?;
             let total: Total = serde_json::from_str(&envelope.body).map_err(|e| {
@@ -88,7 +114,7 @@ fn on_activation(activation: &Activation, panel: &mut Option<View>) -> Result<()
                     envelope.body
                 ))
             })?;
-            dom::set_text(view.total, &total.total.to_string());
+            dom::set_text(display, &total.total.to_string());
         }
     }
     Ok(())
@@ -115,11 +141,13 @@ fn on_gesture(port: &str) -> Result<(), Error> {
     }
 }
 
-/// Build the view under this instance's host element and wire the press.
+/// Build the view under this instance's host element and wire the press, and
+/// answer the handle of the element the number is written to.
 ///
 /// Called once, from the mount activation. The listener is the kernel's and is
-/// page-lifetime: each press arrives as a sync-call activation on its port.
-fn build_view() -> View {
+/// page-lifetime: each press arrives as a sync-call activation on its port. The
+/// button's handle is wanted by nothing after this, so it does not travel.
+fn build_view() -> dom::Node {
     let root = dom::root();
 
     let button = dom::marked("button", PRESS_MARKER);
@@ -133,7 +161,7 @@ fn build_view() -> View {
     dom::append(root, total);
     dom::listen(button, "click", PRESS_PORT);
 
-    View { total }
+    total
 }
 
 brenn_guest::export_processor!(DemoPanel);

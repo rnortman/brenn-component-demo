@@ -16,7 +16,7 @@ of the first two are ignored from a dependency.
 
 module(
     name = "brenn_component_demo",
-    version = "0.1.0",
+    version = "0.2.0",
 )
 
 # Where every rule, macro and host crate here comes from. Build-time contracts
@@ -29,7 +29,7 @@ module(
 bazel_dep(name = "brenn", version = "")
 git_override(
     module_name = "brenn",
-    commit = "3317cdd9b77c5d502118c65db18d9ded4b90e810",
+    commit = "9e2e0b35ef033596246e7e8d3b603ac653680026",
     remote = "https://github.com/rnortman/brenn.git",
 )
 
@@ -41,7 +41,7 @@ git_override(
 bazel_dep(name = "fltk", version = "")
 git_override(
     module_name = "fltk",
-    commit = "555824e6b1dee22161260c2843bd4dec68efd11a",
+    commit = "72db6ea0b07967339ec0693030a7eafdbb143091",
     remote = "https://github.com/rnortman/fltk.git",
 )
 

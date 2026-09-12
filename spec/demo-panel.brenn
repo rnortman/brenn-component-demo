@@ -3,11 +3,15 @@ use @chrome::*;
 
 /// A button and a number. The button publishes a click; the number is the
 /// latest total. It holds `dom` for exactly that and nothing else.
+///
+/// The total display's element handle rides the retained `state` port between
+/// activations, because linear memory does not.
 component DemoPanel {
   abi = processor;
   requires = [ports, log, dom];
   out clicks: "brenn.demo.click@1";
   in total: "brenn.demo.total@1";
+  io state;
 }
 
 /// Everything in the page: the panel, the counter and the chrome, wired to each
@@ -19,6 +23,10 @@ component DemoPanel {
 /// always sees its last one (`retain_depth = 1`), which is the whole of its
 /// memory. `local:` planes are page-scoped, so two pages stamping this assembly
 /// do not share a total.
+///
+/// The panel's and the chrome's `state` ports are the same idea at the same
+/// depths, with nothing else on the ring: an anonymous page-local one per
+/// instance, carrying what that instance remembers between activations.
 assembly DemoPage(slug: String, skin: String) {
   surface page {
     slug = f"{slug}";
@@ -28,6 +36,7 @@ assembly DemoPage(slug: String, skin: String) {
       grants = [ports, log, dom];
       out clicks -> "local:demo.clicks";
       in total <- "local:demo.total" { push_depth = 1; retain_depth = 1; }
+      io state { push_depth = 0; retain_depth = 1; }
     }
     new counter: DemoCounter {
       grants = [ports, log];
@@ -42,6 +51,7 @@ assembly DemoPage(slug: String, skin: String) {
       in surface-state <- "local:brenn/surface-state" { push_depth = 1; }
       in toast <- "local:brenn/toast" { push_depth = 8; }
       io toast-tick { push_depth = 1; retain_depth = 2; }
+      io state { push_depth = 0; retain_depth = 1; }
     }
   }
 }
@@ -77,6 +87,7 @@ assembly DemoSplitPage(slug: String, skin: String) {
       grants = [ports, log, dom];
       out clicks -> clicks;
       in total <- total { push_depth = 1; retain_depth = 1; }
+      io state { push_depth = 0; retain_depth = 1; }
     }
     new chrome: Chrome {
       grants = [ports, log, dom, page-dom];
@@ -86,6 +97,7 @@ assembly DemoSplitPage(slug: String, skin: String) {
       in surface-state <- "local:brenn/surface-state" { push_depth = 1; }
       in toast <- "local:brenn/toast" { push_depth = 8; }
       io toast-tick { push_depth = 1; retain_depth = 2; }
+      io state { push_depth = 0; retain_depth = 1; }
     }
   }
 

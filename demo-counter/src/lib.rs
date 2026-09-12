@@ -2,10 +2,10 @@
 //!
 //! It keeps no state of its own. The total it last published is the retained
 //! message on its `total` port, read back at the top of the next activation and
-//! added to the count of new clicks. A component whose whole memory is a
-//! retained channel cannot tell which host it got — the backend instantiates it
-//! per activation, the page once per page lifetime — which is what lets this one
-//! artifact ship for both placements.
+//! added to the count of new clicks. Both hosts instantiate per activation, so
+//! linear memory would not have carried it anyway; a component whose whole
+//! memory is a retained channel cannot tell which host it got, which is what
+//! lets this one artifact ship for both placements.
 
 mod spec;
 

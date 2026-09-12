@@ -12,7 +12,9 @@ e2e/playwright-report/
 e2e/blob-report/
 e2e/.auth/
 
-# `make run` and `make e2e` state.
+# `make run` and `make e2e` state: the synthesized dev mounts document and the
+# symlink trees it declares, plus the server's own working directory.
+.dev-mounts/
 target/
 
 # The `LANE=ci` bazel caches, which live in the workspace so a CI cache action

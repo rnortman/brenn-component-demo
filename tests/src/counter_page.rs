@@ -1,18 +1,19 @@
 //! The counter on the page host: the same artifact, the same script, the same
 //! published bodies.
 //!
-//! The page instantiates once per page lifetime and drives both activations at
-//! that one instance, where the backend is free to instantiate per activation.
-//! A component that kept its total in a `static` would pass here and fail
-//! there, which is precisely why both suites exist.
+//! Both hosts instantiate per activation, so neither would carry a total in
+//! linear memory: the retained `total` port is the counter's memory on both.
+//! What the two hosts differ in is how they window that retained message —
+//! context on the backend's sampled port, context or news on the page — which
+//! is what [`crate::TotalWindow`] models and why both suites exist.
 
 use brenn_envelope::grants::ComponentGrant;
 use brenn_envelope::testutils::{NOW_MS, envelope};
 use brenn_page_harness::{Harness, Page, types};
 
 use crate::{
-    CLICKS_PORT, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow, WRONG_DOCTYPE_BODY, artifact,
-    total_body,
+    CLICKS_PORT, COLD_CLICK, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow, WRONG_DOCTYPE_BODY,
+    artifact, total_body,
 };
 
 const CLICK_BODY: &str = "{}";
@@ -88,7 +89,7 @@ fn the_counter_reaches_the_page_host_through_ports_and_log_alone() {
     // A grant not in `requires` fails the load; an import actually called but
     // not granted would show up in the transcript here.
     let mut harness = loaded();
-    harness.call(activation(&SCRIPT[1]));
+    harness.call(activation(&SCRIPT[COLD_CLICK]));
 
     let transcript = harness.transcript();
     assert!(

@@ -1,8 +1,8 @@
 /// A running click total with no memory of its own: the total it last published
 /// is the retained message on `total`, read back on the next activation. That is
-/// what lets one artifact run on either host — the backend instantiates per
-/// activation, the page once per lifetime, and a component that keeps its state
-/// on a retained channel cannot tell which it got.
+/// what lets one artifact run on either host — both instantiate per activation,
+/// and a component that keeps its state on a retained channel cannot tell which
+/// it got. It needs no `state` port of its own: `total` is already that channel.
 ///
 /// The capability set is inside the intersection of the two hosts' legal sets,
 /// which is what "runs on the surface or the backend" means mechanically.

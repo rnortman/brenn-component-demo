@@ -1,8 +1,8 @@
 // The document a deployer copies from: both demo pages wired, described and
 // ready to boot, under a developer's own settings.
 //
-// `make run` boots this with brenn's three install roots and this bundle's
-// three, which is the whole system from a consumer's checkout. `dev_fit`
+// `make run` boots this over two mounts, brenn's trees and this bundle's,
+// which is the whole system from a consumer's checkout. `dev_fit`
 // compiles it against the two module roots a host would resolve it from.
 
 // Both pages, their stamps and the app, in one place both documents stamp: the

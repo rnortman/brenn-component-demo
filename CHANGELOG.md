@@ -9,6 +9,27 @@ commit these components build against is the `git_override` pin in
 `MODULE.bazel`, and a pin bump is a change worth an entry: it is where a
 build-time contract is allowed to move.
 
+## [0.2.0] - 2026-09-12
+
+### Changed
+
+- Brenn pin moved from `3317cdd9` to `9e2e0b35` (brenn `v0.21.0`), and the
+  `fltk` override with it, to `72db6ea0`. Five brenn releases are crossed;
+  four of their changes reach this repository, and the three below are what
+  they cost.
+- The panel keeps its state on a retained `io state` port rather than in a
+  `thread_local!`. Linear memory now lives for one activation on both hosts, so
+  the handle of the element the total is written to rides the port between
+  activations; both assemblies bind the port on the panel and on brenn's
+  `Chrome`, which grew one of its own.
+- The dev server takes its roots from a synthesized mounts document rather than
+  from `--components`/`--surface`/`--modules` flags, which a server no longer
+  accepts. `make run`, `make invite` and `make e2e` build it through the
+  generator brenn exports for consumer repositories.
+- Releasing this version is what un-withholds the demo kinds on a 0.21 host: a
+  0.21 host withholds a surface kind whose asset record it cannot read, and the
+  records built at the old pin are a version behind.
+
 ## [0.1.0] - 2026-09-04
 
 ### Added

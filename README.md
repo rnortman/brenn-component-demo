@@ -30,10 +30,13 @@ make repin                       # after a Cargo.toml or Cargo.lock change
 make check BRENN_OVERRIDE=../brenn   # against an unpushed brenn
 ```
 
-`make run` starts brenn on `config/dev.brenn` with six install roots — brenn's
-three, built here rather than installed, and this bundle's three — and serves
-the two pages at `/surface/demo` and `/surface/demo-split` on port 3200.
-`make invite` mints the registration link for it. `make e2e` is the same
+`make run` starts brenn on `config/dev.brenn` over two mounts — brenn's trees,
+built here rather than installed, and this bundle's — declared in a mounts
+document that brenn's exported `bazel/wasm/dev_mounts.sh` synthesizes on every
+spawn, with the bundle mount named as a deployment names it. It serves the two
+pages at `/surface/demo` and `/surface/demo-split` on port 3200.
+`make invite` mints the registration link for a server `make run` has already
+started, reading the document that spawn wrote rather than writing its own. `make e2e` is the same
 arrangement on `config/e2e.brenn` and port 3300, with fresh state, driven by
 Playwright; both it and `make check` run as gates in `.github/workflows/ci.yml`.
 Chromium is the one thing the Makefile leaves to the machine
@@ -143,9 +146,9 @@ path; a deploy pipeline tars that tree with its own installer and `VERSION`
 beside it. This repository ships neither — a bundle carries components, not a
 way to install them.
 
-Install the built bundle's three trees under one root each, give the service
-unit a `--components`, `--surface` and `--modules` per root, and add to the
-config:
+Install the built bundle as one mount — its three trees under a single
+directory, which is the unit a server takes its roots from — declare that
+directory in the deployment's mounts document, and add to the config:
 
 ```
 use @demo-panel::*;

@@ -15,8 +15,8 @@ use brenn_wasm::{
 use brenn_wasm_dispatch::tests::{allow_all, noop_proc_alerter, test_out_spec};
 
 use crate::{
-    CLICKS_PORT, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow, WRONG_DOCTYPE_BODY, artifact,
-    total_body,
+    CLICKS_PORT, COLD_CLICK, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow, WRONG_DOCTYPE_BODY,
+    artifact, total_body,
 };
 
 /// Where a deployment's `io total` would land. Any address does: what the test
@@ -133,15 +133,15 @@ fn the_script_publishes_the_expected_totals_on_the_backend() {
 
 #[test]
 fn a_click_with_no_retained_total_publishes_the_click_count() {
-    // The first step alone, driven on its own instance: a component whose whole
-    // memory is a retained channel must still answer the activation that has no
-    // retained message yet, and answering it with nothing would leave the page
-    // showing a number no publisher ever sent.
+    // The script's click step alone, driven on its own instance: a component
+    // whose whole memory is a retained channel must still answer the activation
+    // that has no retained message yet, and answering it with nothing would
+    // leave the page showing a number no publisher ever sent.
     let component = load();
-    let actual = published(component.handle(activation(&SCRIPT[0])));
+    let actual = published(component.handle(activation(&SCRIPT[COLD_CLICK])));
     assert_eq!(
         actual,
-        vec![(TOTAL_PORT.to_string(), EXPECTED[0].1.to_string())]
+        vec![(TOTAL_PORT.to_string(), EXPECTED[COLD_CLICK].1.to_string())]
     );
 }
 

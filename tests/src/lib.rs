@@ -44,11 +44,20 @@ pub struct Step {
 
 /// The script both counter suites drive, in order.
 ///
-/// A first activation with no retained total, then the arithmetic on a running
-/// total offered as context, then the same offered as news — the guest must
-/// treat both identically — then an empty window, which is what a port bound to
-/// a channel nothing has published on delivers.
-pub const SCRIPT: [Step; 4] = [
+/// The mount activation first — every instance is owed one when it is put into
+/// service, over whatever its channels happen to hold, which at a cold start is
+/// nothing. Then a first click activation with no retained total, then the
+/// arithmetic on a running total offered as context, then the same offered as
+/// news — the guest must treat both identically — then an empty window, which
+/// is what a port bound to a channel nothing has published on delivers. Last,
+/// a retained total with no new clicks over it: the shape a reload that
+/// replaces the consumer delivers, which republishes the total unchanged
+/// rather than going quiet, so a panel that came up after it is told a number.
+pub const SCRIPT: [Step; 6] = [
+    Step {
+        new_clicks: 0,
+        total: TotalWindow::Empty,
+    },
     Step {
         new_clicks: 2,
         total: TotalWindow::Absent,
@@ -65,7 +74,18 @@ pub const SCRIPT: [Step; 4] = [
         new_clicks: 3,
         total: TotalWindow::Empty,
     },
+    Step {
+        new_clicks: 0,
+        total: TotalWindow::Context(3),
+    },
 ];
+
+/// The index of the script's first click activation — two clicks, no retained
+/// total yet.
+///
+/// Naming it keeps a step inserted ahead of it from silently retargeting
+/// the single-activation tests that index [`EXPECTED`] by it.
+pub const COLD_CLICK: usize = 1;
 
 /// What the script must publish, in order, on whichever host ran it: `(port,
 /// body)`.
@@ -74,10 +94,12 @@ pub const SCRIPT: [Step; 4] = [
 /// that renamed the field or started publishing a bare number would still
 /// satisfy a structural comparison and would break every consumer of the
 /// doctype.
-pub const EXPECTED: [(&str, &str); 4] = [
+pub const EXPECTED: [(&str, &str); 6] = [
+    (TOTAL_PORT, r#"{"total":0}"#),
     (TOTAL_PORT, r#"{"total":2}"#),
     (TOTAL_PORT, r#"{"total":5}"#),
     (TOTAL_PORT, r#"{"total":6}"#),
+    (TOTAL_PORT, r#"{"total":3}"#),
     (TOTAL_PORT, r#"{"total":3}"#),
 ];
 
