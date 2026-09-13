@@ -16,11 +16,7 @@ mod spec;
 use brenn_guest::{Activation, Error, OutPort, Processor, RetainedState, StateLoss};
 use serde::{Deserialize, Serialize};
 
-use crate::spec::dom;
-
-/// The sync port the button's press arrives on. Not an input port name; must
-/// collide with none.
-const PRESS_PORT: dom::SyncPort = dom::SyncPort("press");
+use crate::spec::{SyncPort, dom};
 
 /// A component-authored marker for the button, never a styling hook.
 const PRESS_MARKER: &str = "data-demo-press";
@@ -81,12 +77,14 @@ impl Processor for DemoPanel {
 /// A mount activation windows whatever input was already pending, so the build
 /// and the render both run on it — a component is never told why it woke.
 fn on_activation(activation: &Activation, panel: &mut Panel) -> Result<(), Error> {
-    if activation.sync_is(dom::MOUNT) {
+    // Before the gesture classifier, not after: `SyncPort::of` refuses the mount
+    // cause, which no specification declares.
+    if activation.sync_is(brenn_guest::MOUNT) {
         // Retained state can arrive holding a display handle from an earlier
         // mount. The host element is cleared before every mount activation, so
         // that handle names nothing; always rebuild.
         panel.display = Some(build_view());
-    } else if let Some(port) = activation.sync() {
+    } else if let Some(port) = SyncPort::of(activation)? {
         on_gesture(port)?;
     }
     let display = panel.display.ok_or_else(|| {
@@ -125,12 +123,10 @@ fn on_activation(activation: &Activation, panel: &mut Panel) -> Result<(), Error
 /// A refusal other than quota is structural — an unbound port, a body over the
 /// cap — and no later press repairs it, so the first one takes the instance's
 /// error card rather than being logged and forgotten.
-fn on_gesture(port: &str) -> Result<(), Error> {
-    if port != PRESS_PORT {
-        return Err(Error::failed(format!(
-            "the panel wired no gesture to sync port {port:?}"
-        )));
-    }
+fn on_gesture(port: SyncPort) -> Result<(), Error> {
+    // Exhaustive on purpose: a second `sync` port in the specification must not
+    // fall through to the press path.
+    let SyncPort::Press = port;
     match CLICKS.publish(&Click {}) {
         Ok(()) => Ok(()),
         Err(err) if err.is_quota() => {
@@ -159,7 +155,7 @@ fn build_view() -> dom::Node {
 
     dom::append(root, button);
     dom::append(root, total);
-    dom::listen(button, "click", PRESS_PORT);
+    dom::listen(button, "click", SyncPort::Press);
 
     total
 }

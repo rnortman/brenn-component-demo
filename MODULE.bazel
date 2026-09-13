@@ -29,7 +29,7 @@ module(
 bazel_dep(name = "brenn", version = "")
 git_override(
     module_name = "brenn",
-    commit = "9e2e0b35ef033596246e7e8d3b603ac653680026",
+    commit = "28ac4406407f1b7f2711b3d870d37ab64c603056",
     remote = "https://github.com/rnortman/brenn.git",
 )
 

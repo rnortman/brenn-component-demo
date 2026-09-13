@@ -4,6 +4,10 @@
 //! each reduces its host's output to `(port, body)` pairs and both compare
 //! against [`EXPECTED`].
 
+use std::sync::LazyLock;
+
+use brenn_page_harness::{Declared, Kind};
+
 #[cfg(test)]
 mod counter_backend;
 #[cfg(test)]
@@ -115,13 +119,37 @@ pub fn total_body(total: u64) -> String {
     format!(r#"{{"total":{total}}}"#)
 }
 
-/// An artifact path from the build.
+/// A path the build named: a component artifact, or a specification the harness
+/// reads a class's vocabulary off.
 ///
-/// An out-of-tree crate cannot walk to a component: it sits wherever its own
-/// repository puts it, and under Bazel it sits in the runfiles. The BUILD file
-/// names the artifact through `$(rootpath)` and the test reads it back here.
-pub fn artifact(var: &str) -> std::path::PathBuf {
+/// An out-of-tree crate cannot walk to either: it sits wherever its own
+/// repository puts it, the components are built rather than checked in, and
+/// under Bazel both sit in the runfiles. The BUILD file names each one through
+/// `$(rootpath)` and the test reads it back here.
+pub fn build_path(var: &str) -> std::path::PathBuf {
     std::path::PathBuf::from(
-        std::env::var(var).unwrap_or_else(|e| panic!("the build names the artifact in {var}: {e}")),
+        std::env::var(var).unwrap_or_else(|e| panic!("the build names {var}: {e}")),
+    )
+}
+
+/// The panel, compiled once for the whole binary.
+///
+/// A missing env var, an unreadable artifact or a specification that does not
+/// resolve panics in here and poisons the cell: the first test to touch it
+/// reports the cause, every later one reports only std's "LazyLock instance has
+/// previously been poisoned". Read the first panic in the log; the rest name
+/// nothing.
+pub static PANEL: LazyLock<Kind> = LazyLock::new(|| kind("DEMO_PANEL_WASM", "DEMO_PANEL_SPEC"));
+
+/// The counter, compiled once for the whole binary, for the page suite.
+///
+/// Poisons on a setup failure exactly as [`PANEL`] does.
+pub static COUNTER: LazyLock<Kind> =
+    LazyLock::new(|| kind("DEMO_COUNTER_WASM", "DEMO_COUNTER_SPEC"));
+
+fn kind(wasm_var: &str, spec_var: &str) -> Kind {
+    Kind::compile(
+        &build_path(wasm_var),
+        Declared::from_spec(&build_path(spec_var), None),
     )
 }

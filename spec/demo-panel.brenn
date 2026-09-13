@@ -4,13 +4,20 @@ use @chrome::*;
 /// A button and a number. The button publishes a click; the number is the
 /// latest total. It holds `dom` for exactly that and nothing else.
 ///
+/// `press` is the button's gesture port: the kernel calls the panel on it when
+/// the button is clicked. A `sync` port carries no channel, so no assembly
+/// binds it.
+///
 /// The total display's element handle rides the retained `state` port between
 /// activations, because linear memory does not.
 component DemoPanel {
   abi = processor;
+  // TODO(walk-peer-calls): a peer call would take `calls` in this list and a
+  // `call` port beneath it; this repository walks none of that surface.
   requires = [ports, log, dom];
   out clicks: "brenn.demo.click@1";
   in total: "brenn.demo.total@1";
+  sync press;
   io state;
 }
 

@@ -9,13 +9,14 @@
 //! creates, which markers it puts on them, which port it listens with, and what
 //! it publishes and renders.
 
-use brenn_envelope::grants::ComponentGrant;
 use brenn_page_harness::{Harness, Page, ROOT, delivery_on, gesture, mount, ports, types};
 
-use crate::{WRONG_DOCTYPE_BODY, artifact, total_body};
+use crate::{PANEL, WRONG_DOCTYPE_BODY, total_body};
 
 /// The port the panel listens on. Named here rather than imported because the
-/// guest is a wasm32 crate: what this test can see of it is the artifact.
+/// guest is a wasm32 crate: what this test can see of it is the artifact. Must
+/// match a `sync` declaration in the specification; the harness refuses an
+/// undeclared name.
 const PRESS_PORT: &str = "press";
 
 /// The panel's out port, as its specification names it.
@@ -35,16 +36,7 @@ const TOTAL_MARKER: &str = "data-demo-total";
 /// did not carry the port would hand every activation after the first a panel
 /// that had never mounted.
 fn unmounted() -> Harness {
-    Harness::new(
-        &artifact("DEMO_PANEL_WASM"),
-        Page::new(),
-        &[
-            ComponentGrant::Ports,
-            ComponentGrant::Log,
-            ComponentGrant::Dom,
-        ],
-    )
-    .retaining_state(STATE_PORT)
+    PANEL.instantiate(Page::new()).retaining_state(STATE_PORT)
 }
 
 fn mounted() -> Harness {
@@ -129,26 +121,23 @@ fn a_delivered_total_sets_the_number() {
 }
 
 #[test]
-fn a_gesture_on_a_port_the_panel_wired_nothing_to_is_refused() {
-    // An unknown port is a wiring bug: a kind serving a page whose markup
-    // listens with a name this build no longer publishes for. The panel refuses
-    // rather than answering with nothing, which would make the button look wired
-    // and publish nothing forever.
+#[should_panic(expected = "sync call on port \"nope\", which this specification does not declare")]
+fn a_gesture_on_a_port_the_specification_does_not_declare_is_refused_by_the_host() {
+    // A gesture on an undeclared port is a wiring bug: a page whose markup
+    // listens with a name this specification does not carry. The host refuses
+    // the activation against the specification's vocabulary.
+    //
+    // The panic is the whole assertion: it pins the port name and the reason
+    // together, which is what separates this refusal both from mount's own
+    // `dom.listen` failure (same tail, no port name) and from some later
+    // refusal that quotes the same cause for another reason. That the guest
+    // never runs is the host's ordering — the script is checked before the
+    // call — and is taken on the host's word, not checked here: nothing after
+    // the panicking line executes.
     let mut harness = mounted();
     let button = harness.page().marked_child(ROOT, PRESS_MARKER);
 
-    let error = harness.call_expecting_a_refusal(gesture("nope", button));
-    match error {
-        types::ReceiveError::ProcessingFailed(why) => assert!(
-            why.contains("nope"),
-            "the refusal names the port nothing was wired to: {why}",
-        ),
-        other => panic!("an unwired gesture is a refusal, not a trap: {other:?}"),
-    }
-    assert!(
-        harness.page().published_on(CLICKS_PORT).is_empty(),
-        "a refused gesture publishes nothing",
-    );
+    harness.call(gesture("nope", button));
 }
 
 #[test]

@@ -7,13 +7,12 @@
 //! context on the backend's sampled port, context or news on the page — which
 //! is what [`crate::TotalWindow`] models and why both suites exist.
 
-use brenn_envelope::grants::ComponentGrant;
 use brenn_envelope::testutils::{NOW_MS, envelope};
 use brenn_page_harness::{Harness, Page, types};
 
 use crate::{
-    CLICKS_PORT, COLD_CLICK, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow, WRONG_DOCTYPE_BODY,
-    artifact, total_body,
+    CLICKS_PORT, COLD_CLICK, COUNTER, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow,
+    WRONG_DOCTYPE_BODY, total_body,
 };
 
 const CLICK_BODY: &str = "{}";
@@ -54,14 +53,10 @@ fn activation(step: &Step) -> types::Activation {
 
 /// A counter instance linked with exactly the grants its specification requires.
 ///
-/// A grant this list named that the specification does not would be a page more
-/// permissive than the deployment it is testing.
+/// Grants come from the specification, so the page is exactly as permissive as
+/// the deployment it is testing, by construction.
 fn loaded() -> Harness {
-    Harness::new(
-        &artifact("DEMO_COUNTER_WASM"),
-        Page::new(),
-        &[ComponentGrant::Ports, ComponentGrant::Log],
-    )
+    COUNTER.instantiate(Page::new())
 }
 
 #[test]

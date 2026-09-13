@@ -9,6 +9,28 @@ commit these components build against is the `git_override` pin in
 `MODULE.bazel`, and a pin bump is a change worth an entry: it is where a
 build-time contract is allowed to move.
 
+## [Unreleased]
+
+## [0.3.0] - 2026-09-12
+
+### Changed
+
+- Brenn pin moved from `9e2e0b35` to `28ac4406` (brenn `v0.23.1`); the `fltk`
+  override, the Rust toolchain and the Bazel version are re-checked against
+  brenn and unchanged. Three brenn releases are crossed; two of their changes
+  reach this repository.
+- The panel declares its button's gesture port, `sync press;`, and reaches it
+  through the generated `spec::SyncPort::Press`, the hand-spelled
+  `dom::SyncPort` having left the guest SDK. A 0.23 page kernel refuses a
+  `dom.listen` on a port the specification does not declare, and the refusal
+  ends the mount activation, so a panel built at the old pin has a dead button
+  on a 0.23 host and this release is what restores it.
+- The host-side page suites hand the harness the specification beside the
+  artifact instead of a grants list. The harness now reads a class's whole
+  vocabulary — grants and ports — off the specification and refuses a gesture,
+  publish or window it does not declare, so a name mismatch between a test and
+  the spec fails in `//tests` rather than only in the browser.
+
 ## [0.2.0] - 2026-09-12
 
 ### Changed

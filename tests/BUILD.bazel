@@ -4,16 +4,17 @@
 # the two counter halves are compared on and a shared constant in three separate
 # test binaries is three copies that can drift.
 #
-# The artifacts arrive as runfiles and are named to the test through the
-# environment. A `CARGO_MANIFEST_DIR`-relative walk is brenn's in-tree
-# convention and does not survive the move out: this crate sits wherever its own
-# repository puts it, and the components are built, not checked in.
+# The artifacts and the specifications arrive as runfiles and are named to the
+# test through the environment. A `CARGO_MANIFEST_DIR`-relative walk is brenn's
+# in-tree convention and does not survive the move out: this crate sits wherever
+# its own repository puts it, and the components are built, not checked in.
 load("@rules_rust//rust:defs.bzl", "rust_test")
 
-# `medium` rather than `small`: the suite itself runs in seconds, but each of
-# the three wasmtime instantiations compiles a component at load, and a CI
-# runner is an order of magnitude slower than a workstation. The same budget
-# brenn gives its own component-loading suites.
+# `medium` rather than `small`: the suite itself runs in seconds, but the binary
+# compiles each component and resolves each specification before any test that
+# needs it runs — twice over for the page harness, once more for the backend's
+# own load — and a CI runner is an order of magnitude slower than a workstation.
+# The same budget brenn gives its own component-loading suites.
 rust_test(
     name = "tests",
     size = "medium",
@@ -23,10 +24,14 @@ rust_test(
     data = [
         "//demo-counter:component",
         "//demo-panel:component",
+        "//spec:demo-counter.brenn",
+        "//spec:demo-panel.brenn",
     ],
     edition = "2024",
     env = {
+        "DEMO_COUNTER_SPEC": "$(rootpath //spec:demo-counter.brenn)",
         "DEMO_COUNTER_WASM": "$(rootpath //demo-counter:component)",
+        "DEMO_PANEL_SPEC": "$(rootpath //spec:demo-panel.brenn)",
         "DEMO_PANEL_WASM": "$(rootpath //demo-panel:component)",
     },
     deps = [

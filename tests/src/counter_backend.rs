@@ -5,7 +5,7 @@
 //! are brenn's own, and so are the envelope frames the windows carry; only the
 //! load spec is test-supplied.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use brenn_envelope::testutils::{NOW_MS, envelope};
 use brenn_wasm::{
@@ -16,7 +16,7 @@ use brenn_wasm_dispatch::tests::{allow_all, noop_proc_alerter, test_out_spec};
 
 use crate::{
     CLICKS_PORT, COLD_CLICK, EXPECTED, SCRIPT, Step, TOTAL_PORT, TotalWindow, WRONG_DOCTYPE_BODY,
-    artifact, total_body,
+    build_path, total_body,
 };
 
 /// Where a deployment's `io total` would land. Any address does: what the test
@@ -34,7 +34,7 @@ fn load() -> ProcessorComponent {
         test_out_spec(TOTAL_CHANNEL.to_string()),
     )]);
     ProcessorComponent::load(ProcessorLoadSpec {
-        component_path: &artifact("DEMO_COUNTER_WASM"),
+        component_path: &build_path("DEMO_COUNTER_WASM"),
         slug: "demo-counter",
         declared_out_ports: output_ports.keys().cloned().collect(),
         output_ports,
@@ -58,6 +58,11 @@ fn load() -> ProcessorComponent {
         output_acl: allow_all(),
         mqtt_publish: None,
         tool_host: None,
+        // The counter declares no `call` port, so it reaches no peer, and no
+        // `sync` port, so nothing calls it synchronously.
+        declared_call_ports: BTreeSet::new(),
+        calls: HashMap::new(),
+        sync_caller: None,
     })
 }
 
