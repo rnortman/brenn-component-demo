@@ -25,12 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The only system dependency. rules_cc autodetects lld if present, else
-      # gold, and hard-wires the winner into every link. This image ships gold,
-      # which rustc has deprecated and warns about on every link.
-      - name: Install lld
-        run: sudo apt-get update && sudo apt-get install -y lld
-
       # `LANE=ci` points both bazel caches inside the workspace so actions/cache
       # can carry them. One entry for the pair: they are restored and saved
       # together, and a run that had one without the other would fetch or

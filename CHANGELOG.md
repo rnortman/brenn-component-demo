@@ -11,6 +11,15 @@ build-time contract is allowed to move.
 
 ## [Unreleased]
 
+### Changed
+
+- The hermetic C toolchain moves to LLVM 23.1.4 (toolchains_llvm 1.12.0),
+  whose binaries load nothing from the host beyond libz, libstdc++, libgcc_s and glibc.
+  The 22.1.8 `lld` loaded the host's `libxml2.so.2`, which the current
+  `ubuntu-latest` image (Ubuntu 26.04) no longer ships, so CI could not link.
+  The "Install lld" CI step, which never chose the linker, is gone. The first
+  build after updating is a cold one.
+
 ## [0.3.0] - 2026-09-12
 
 ### Changed
